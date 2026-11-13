@@ -1,0 +1,47 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--primary);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.brand p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.container {
+  flex: 1;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+.foot {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 0 16px 24px;
+}

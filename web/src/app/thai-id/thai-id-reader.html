@@ -1,0 +1,156 @@
+<section class="panel">
+  <header class="panel-head">
+    <div>
+      <h2>อ่านบัตรประชาชน</h2>
+      <p class="sub">เสียบบัตรเข้าเครื่องอ่าน ระบบจะอ่านข้อมูลให้อัตโนมัติ</p>
+    </div>
+    @switch (id.connection()) {
+      @case ('connected') {
+        <span class="pill ok"><i></i>เชื่อมต่อ Thai ID Bridge {{ id.bridgeInfo()?.version }}</span>
+      }
+      @case ('connecting') {
+        <span class="pill wait"><i></i>กำลังค้นหา Thai ID Bridge…</span>
+      }
+      @default {
+        <span class="pill bad"><i></i>ไม่พบ Thai ID Bridge</span>
+      }
+    }
+  </header>
+
+  @if (id.connection() === 'disconnected') {
+    <div class="notice">
+      <strong>ยังไม่ได้เปิดโปรแกรม Thai ID Bridge บนเครื่องนี้</strong>
+      <ol>
+        <li>ดับเบิลคลิก <code>ThaiIdBridge.exe</code> (ไม่ต้องติดตั้ง)</li>
+        <li>หน้านี้จะเชื่อมต่อให้เองภายในไม่กี่วินาที <span class="muted">({{ id.url }})</span></li>
+      </ol>
+    </div>
+  }
+
+  @if (id.connection() === 'connected') {
+    <div class="readers">
+      @for (r of id.readers(); track r.name) {
+        <label class="reader" [class.active]="r.name === id.selectedReaderName()">
+          <input type="radio" name="reader" [checked]="r.name === id.selectedReaderName()" (change)="id.selectReader(r.name)" />
+          <span class="reader-name">
+            {{ r.name }}
+            @if (r.virtual) {
+              <em>(จำลอง)</em>
+            }
+          </span>
+          <span class="chip" [class.ok]="r.cardPresent && !r.mute" [class.warn]="r.mute">{{ readerLabel(r) }}</span>
+        </label>
+      } @empty {
+        <div class="notice">ไม่พบเครื่องอ่านบัตร — เสียบเครื่องอ่าน (เช่น TDC39VC) เข้าพอร์ต USB</div>
+      }
+    </div>
+  }
+
+  <div class="toolbar">
+    <button class="primary" type="button" (click)="id.read()" [disabled]="!canRead()">
+      {{ id.reading() ? 'กำลังอ่าน…' : 'อ่านบัตร' }}
+    </button>
+    <label class="toggle">
+      <input type="checkbox" [checked]="id.autoRead()" (change)="id.autoRead.set(checked($event))" />
+      อ่านอัตโนมัติเมื่อเสียบบัตร
+    </label>
+    <label class="toggle">
+      <input type="checkbox" [checked]="masked()" (change)="masked.set(checked($event))" />
+      ปิดบังข้อมูลบนจอ
+    </label>
+    <span class="spacer"></span>
+    @if (id.bridgeInfo()?.simulator) {
+      <button type="button" (click)="id.simulate('insert')">จำลอง: เสียบบัตร</button>
+      <button type="button" (click)="id.simulate('remove')">จำลอง: ถอดบัตร</button>
+    }
+    <button type="button" (click)="id.clear()" [disabled]="!id.card()">ล้างข้อมูล</button>
+  </div>
+
+  @if (id.progress(); as p) {
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="p.percent">
+      <div class="bar" [style.width.%]="p.percent"></div>
+      <span>{{ progressLabel(p.step) }} {{ p.percent }}%</span>
+    </div>
+  }
+
+  @if (id.error(); as message) {
+    <div class="error" role="alert">{{ message }}</div>
+  }
+
+  @if (view(); as v) {
+    <article class="idcard" [class.masked]="masked()">
+      <div class="idcard-head">
+        <span>บัตรประจำตัวประชาชน</span>
+        <span class="en">Thai National ID Card</span>
+      </div>
+      <div class="idcard-body">
+        <dl class="fields">
+          <div class="row wide">
+            <dt>เลขประจำตัวประชาชน</dt>
+            <dd class="cid">
+              {{ v.citizenId }}
+              @if (v.citizenIdValid) {
+                <span class="badge ok">✓ เลขถูกต้อง</span>
+              } @else {
+                <span class="badge bad">เลขตรวจสอบไม่ผ่าน</span>
+              }
+            </dd>
+          </div>
+          <div class="row wide"><dt>ชื่อ-นามสกุล</dt><dd class="name">{{ v.nameTh }}</dd></div>
+          <div class="row wide"><dt>Name</dt><dd>{{ v.nameEn }}</dd></div>
+          <div class="row">
+            <dt>เกิดวันที่</dt>
+            <dd>
+              {{ v.birth }}
+              @if (v.age !== null) {
+                <span class="muted">(อายุ {{ v.age }} ปี)</span>
+              }
+            </dd>
+          </div>
+          <div class="row"><dt>เพศ</dt><dd>{{ v.gender }}</dd></div>
+          <div class="row wide"><dt>ที่อยู่</dt><dd>{{ v.address }}</dd></div>
+          <div class="row"><dt>วันออกบัตร</dt><dd>{{ v.issueDate }}</dd></div>
+          <div class="row">
+            <dt>วันบัตรหมดอายุ</dt>
+            <dd>
+              {{ v.expireDate }}
+              @if (v.expired) {
+                <span class="badge bad">หมดอายุแล้ว</span>
+              }
+            </dd>
+          </div>
+          <div class="row wide"><dt>ผู้ออกบัตร</dt><dd>{{ v.issuer }}</dd></div>
+        </dl>
+        <div class="photo">
+          @if (v.photoUrl) {
+            <img [src]="v.photoUrl" alt="รูปถ่ายบนบัตร" />
+          } @else {
+            <div class="nophoto">ไม่มีรูปถ่าย</div>
+          }
+        </div>
+      </div>
+      <footer class="idcard-foot">อ่านเมื่อ {{ v.readAt }} · {{ v.reader }}</footer>
+    </article>
+
+    <div class="actions">
+      <button type="button" (click)="copyJson()">{{ copied() ? 'คัดลอกแล้ว ✓' : 'คัดลอก JSON สำหรับส่งเข้าระบบ' }}</button>
+    </div>
+    @if (!masked()) {
+      <details class="json">
+        <summary>ดูข้อมูล JSON</summary>
+        <pre>{{ jsonPreview() }}</pre>
+      </details>
+    }
+  } @else if (!id.reading() && id.connection() === 'connected' && id.readers().length) {
+    <div class="empty">
+      <svg viewBox="0 0 64 44" width="64" height="44" aria-hidden="true">
+        <rect x="1" y="1" width="62" height="42" rx="6" fill="none" stroke="currentColor" stroke-width="2" />
+        <rect x="8" y="12" width="12" height="10" rx="2" fill="currentColor" opacity=".55" />
+        <rect x="26" y="12" width="28" height="3" rx="1.5" fill="currentColor" opacity=".4" />
+        <rect x="26" y="19" width="20" height="3" rx="1.5" fill="currentColor" opacity=".4" />
+        <rect x="8" y="30" width="46" height="3" rx="1.5" fill="currentColor" opacity=".25" />
+      </svg>
+      <p>เสียบบัตรประชาชนเข้าเครื่องอ่าน โดยหันด้านชิปเข้าเครื่อง</p>
+    </div>
+  }
+</section>

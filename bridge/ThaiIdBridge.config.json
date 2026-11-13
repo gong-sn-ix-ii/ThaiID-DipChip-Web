@@ -1,0 +1,10 @@
+{
+  "port": 8424,
+  "allowedOrigins": [
+    "https://your-web-app.example.com"
+  ],
+  "allowLocalhostOrigins": true,
+  "wwwRoot": "www",
+  "simulate": false,
+  "verbose": false
+}
